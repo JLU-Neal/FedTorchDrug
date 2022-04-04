@@ -2,7 +2,7 @@
 set -x
 
 # install pytorch (please double check your CUDA version before executing this shell)
-conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia
+# conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia
 conda install -c anaconda mpi4py grpcio
 
 conda install scikit-learn numpy h5py setproctitle networkx

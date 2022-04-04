@@ -11,12 +11,12 @@ import wandb
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "")))
 from data_preprocessing.molecule.data_loader import *
-from model.sage_readout import SageMoleculeNet
-from model.gat_readout import GatMoleculeNet
-from model.gcn_readout import GcnMoleculeNet
-from training.sage_readout_trainer_regression import SageMoleculeNetTrainer
-from training.gat_readout_trainer_regression import GatMoleculeNetTrainer
-from training.gcn_trainer_readout_regression import GcnMoleculeNetTrainer
+from model.moleculenet.sage_readout import SageMoleculeNet
+from model.moleculenet.gat_readout import GatMoleculeNet
+from model.moleculenet.gcn_readout import GcnMoleculeNet
+from training.moleculenet.sage_readout_trainer_regression import SageMoleculeNetTrainer
+from training.moleculenet.gat_readout_trainer_regression import GatMoleculeNetTrainer
+from training.moleculenet.gcn_trainer_readout_regression import GcnMoleculeNetTrainer
 from FedML.fedml_api.distributed.fedavg.FedAvgAPI import (
     FedML_init,
     FedML_FedAvg_distributed,
@@ -206,6 +206,10 @@ def add_args(parser):
     )
 
     parser.add_argument("--ci", type=int, default=0, help="CI")
+
+    parser.add_argument('--backend', type=str, default='MPI', metavar='N', help='idontknow')
+
+    parser.add_argument('--metric', type=str, default='r2', help='this framework is shit')
     args = parser.parse_args()
     return args
 

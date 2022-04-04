@@ -13,10 +13,10 @@ nohup sh run_fedavg_distributed_pytorch.sh 6 1 1 1 graphsage homo 150 1 1 0.0015
 
 ### Distributed/Federated Molecule Property Regression experiments
 ```
-sh run_fedavg_distributed_reg.sh 6 1 1 1 graphsage homo 150 1 1 0.0015 256 256 0.3 256 256 freesolv "./../../../data/freesolv/" 0
+sh run_fedavg_distributed_reg.sh 4 1 1 1 graphsage homo 0.5 150 1 1 0.0015 256 256 0.3 256 256 freesolv "./../../../data/moleculenet/freesolv/" 0
 
 ##run on background
-nohup sh run_fedavg_distributed_reg.sh 6 1 1 1 graphsage homo 150 1 1 0.0015 256 256 0.3 256 256 freesolv "./../../../data/freesolv/" 0 > ./fedavg-graphsage.log 2>&1 &
+nohup sh run_fedavg_distributed_reg.sh 6 1 1 1 graphsage homo 0.5 150 1 1 0.0015 256 256 0.3 256 256 freesolv "./../../../data/moleculenet/freesolv/" 0 > ./fedavg-graphsage.log 2>&1 &
 ```
 
 #### Arguments for Distributed/Federated Training

@@ -16,7 +16,7 @@ def get_fl_algorithm_initializer(alg_name):
     elif alg_name == "FedProx":
         fl_algorithm = FedML_FedProx_distributed
     else:
-        raise Exception("please do sanity check for this algorithm.")
+        raise Exception("please do sanity check for this algorithm. The input name is:" + str(alg_name))
 
     return fl_algorithm
 
