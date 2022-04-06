@@ -10,10 +10,9 @@ import wandb
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "")))
-from data_preprocessing.molecule.data_loader import *
-from model.moleculenet.sage_readout import SageMoleculeNet
-from model.moleculenet.gat_readout import GatMoleculeNet
-from model.moleculenet.gcn_readout import GcnMoleculeNet
+# from data_preprocessing.molecule.data_loader import *
+import logging
+from data_preprocessing.torchdrug.data_loader import load_partition_data, get_data
 from training.torchdrug.torchdrug_trainer import TorchDrugTrainer
 from FedML.fedml_api.distributed.fedavg.FedAvgAPI import FedML_init
 

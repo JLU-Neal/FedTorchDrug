@@ -1,4 +1,5 @@
 import logging
+from unittest import result
 
 import numpy as np
 import torch
@@ -11,6 +12,7 @@ from torch_geometric.utils import negative_sampling
 from sklearn.metrics import average_precision_score, roc_auc_score, precision_recall_curve, auc
 
 from FedML.fedml_core.trainer.model_trainer import ModelTrainer
+from torchdrug import data
 
 class TorchDrugTrainer(ModelTrainer):
     def get_model_params(self):
@@ -60,7 +62,10 @@ class TorchDrugTrainer(ModelTrainer):
                 mask = mask.to(device=device, dtype=torch.float32, non_blocking=True)
 
                 # Need to check the return type
-                logits = model(adj_matrix, feature_matrix)
+                graph = data.Graph.from_dense(adj_matrix)
+                graph.graph_feature = feature_matrix
+                result = model(graph, feature_matrix)
+                logits = result['graph_feature']
                 loss = criterion(logits, label) * mask
                 loss = loss.sum() / mask.sum()
 
@@ -107,8 +112,8 @@ class TorchDrugTrainer(ModelTrainer):
                 )
 
                 #Need to check the return type
-                logits = model(adj_matrix, feature_matrix)
-
+                result = model(adj_matrix, feature_matrix)
+                logits = result['graph_feature']
                 y_pred.append(logits.cpu().numpy())
                 y_true.append(label.cpu().numpy())
                 masks.append(mask.numpy())
