@@ -16,6 +16,7 @@ def get_fl_algorithm_initializer(alg_name):
     elif alg_name == "FedProx":
         fl_algorithm = FedML_FedProx_distributed
     else:
+        print(alg_name + " is not supported")
         raise Exception("please do sanity check for this algorithm. The input name is:" + str(alg_name))
 
     return fl_algorithm
@@ -40,7 +41,7 @@ def add_federated_args(parser):
                         help="is_debug_mode")
 
     # Data related
-    parser.add_argument('--partition_method', type=str, default='uniform',
+    parser.add_argument('--partition_method', type=str, default='homo',
                         help='partition method')
 
     parser.add_argument('--partition_alpha', type=float, default=0.5, metavar='PA',
@@ -81,11 +82,11 @@ def add_federated_args(parser):
     parser.add_argument('--is_mobile', type=int, default=0,
                         help='whether the program is running on the FedML-Mobile server side')
 
-    parser.add_argument('--client_num_in_total', type=int, default=-1, metavar='NN',
+    parser.add_argument('--client_num_in_total', type=int, default=6, metavar='NN',
                         help='number of clients in a distributed cluster')
 
     parser.add_argument('--client_num_per_round', type=int,
-                        default=4, metavar='NN', help='number of workers')
+                        default=2, metavar='NN', help='number of workers')
 
     parser.add_argument('--epochs', type=int, default=3, metavar='EP',
                         help='how many epochs will be trained locally')

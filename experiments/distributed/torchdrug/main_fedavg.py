@@ -12,12 +12,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "")))
 # from data_preprocessing.molecule.data_loader import *
 import logging
-from data_preprocessing.torchdrug.data_loader import load_partition_data, get_data
+from data_preprocessing.torchdrug.data_loader import ClinToxDataLoader
 from training.torchdrug.torchdrug_trainer import TorchDrugTrainer
 from FedML.fedml_api.distributed.fedavg.FedAvgAPI import FedML_init
 
 from experiments.distributed.initializer import add_federated_args, get_fl_algorithm_initializer, set_seed
-from torchdrug import models;
+from torchdrug import models, tasks;
 
 def add_args(parser):
     """
@@ -25,14 +25,14 @@ def add_args(parser):
     return a parser added with args required by fit
     """
     # Training settings
-    parser.add_argument('--model', type=str, default='graphsage', metavar='N',
+    parser.add_argument('--model', type=str, default='GIN', metavar='N',
                         help='neural network used in training')
 
 
-    parser.add_argument('--dataset', type=str, default='sider', metavar='N',
+    parser.add_argument('--dataset', type=str, default='ClinTox', metavar='N',
                         help='dataset used for training')
 
-    parser.add_argument('--data_dir', type=str, default='./../../../data/moleculenet/',
+    parser.add_argument('--data_dir', type=str, default='~/FedGraphNN/data/molecule-datasets/',
                         help='data directory')
 
     parser.add_argument('--normalize_features', type=bool, default=False, help='Whether or not to symmetrically normalize feat matrices')
@@ -42,16 +42,16 @@ def add_args(parser):
     parser.add_argument('--sparse_adjacency', type=bool, default=False, help='Whether or not the adj matrix is to be processed as a sparse matrix')
 
 
-    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
+    parser.add_argument('--batch_size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 64)')
 
     # model related
-    parser.add_argument('--hidden_size', type=int, default=32, help='Size of GraphSAGE hidden layer')
+    parser.add_argument('--hidden_size', type=int, default=256, help='Size of GraphSAGE hidden layer')
 
-    parser.add_argument('--node_embedding_dim', type=int, default=32,
+    parser.add_argument('--node_embedding_dim', type=int, default=256,
                         help='Dimensionality of the vector space the atoms will be embedded in')
 
-    parser.add_argument('--alpha', type=float, default=0.2, help='Alpha value for LeakyRelu used in GAT')
+    parser.add_argument('--alpha', type=float, default=0.5, help='Alpha value for LeakyRelu used in GAT')
 
     parser.add_argument('--num_heads', type=int, default=2, help='Number of attention heads used in GAT')
 
@@ -70,6 +70,9 @@ def add_args(parser):
     parser.add_argument('--gpu_num_per_server', type=int, default=4,
                         help='gpu_num_per_server')
 
+    parser.add_argument('--gradient_interval', type=int, default=1)
+    
+    parser.add_argument('--scheduler', type=str, default='None')
     parser = add_federated_args(parser)
     args = parser.parse_args()
     return args
@@ -84,7 +87,11 @@ def load_data(args, dataset_name):
     compact = args.model == "graphsage"
 
     logging.info("load_data. dataset_name = %s" % dataset_name)
-    _, feature_matrices, labels = get_data(args.data_dir + args.dataset)
+    if dataset_name == 'ClinTox':
+        data_loader = ClinToxDataLoader(args.data_dir)
+    else:
+        Exception("no such dataset!")   
+        
     unif = True if args.partition_method == "homo" else False
     if args.model == "gcn":
         args.normalize_features = True
@@ -106,14 +113,11 @@ def load_data(args, dataset_name):
         train_data_local_dict,
         val_data_local_dict,
         test_data_local_dict,
-    ) = load_partition_data(
+    ) = data_loader.load_partition_data(
         args,
-        args.data_dir + args.dataset,
         args.client_num_in_total,
         uniform=unif,
         compact=compact,
-        normalize_features=args.normalize_features,
-        normalize_adj=args.normalize_adjacency,
     )
 
     dataset = [
@@ -129,17 +133,20 @@ def load_data(args, dataset_name):
         test_data_local_dict,
     ]
 
-    return dataset, feature_matrices[0].shape[1], labels[0].shape[0]
+    return dataset
 
 
-def create_model(args, model_name, feat_dim, num_cats, output_dim):
-    logging.info(
-        "create_model. model_name = %s, output_dim = %s" % (model_name, output_dim)
-    )
+def create_model(args, model_name, train_data_loader):
     if model_name == "GIN":
-        model = models.GIN(input_dim=args.node_embedding_dim, hidden_dims=[args.hidden_size]*4,
+        model = models.GIN(input_dim=args.node_embedding_dim, hidden_dims=[256, 256, 256, 256],
                             short_cut=True, batch_norm=True, concat_hidden=True).cuda()
-        trainer = TorchDrugTrainer(model)
+        task = tasks.PropertyPrediction(model, task=train_data_loader.dataset.dataset.tasks, criterion="bce", metric=("auprc", "auroc"))
+        if hasattr(task, "preprocess"):
+            result = task.preprocess(train_data_loader.dataset.dataset, None, None)
+        if model.device.type == "cuda":
+            task = task.cuda(model.device)
+        model = task
+        trainer = TorchDrugTrainer(model, args)
     else:
         raise Exception("such model does not exist !")
     logging.info("done")
@@ -238,7 +245,7 @@ if __name__ == "__main__":
     )
 
     # load data
-    dataset, feat_dim, num_cats = load_data(args, args.dataset)
+    dataset = load_data(args, args.dataset)
     [
         train_data_num,
         val_data_num,
@@ -255,8 +262,9 @@ if __name__ == "__main__":
     # create model.
     # Note if the model is DNN (e.g., ResNet), the training will be very slow.
     # In this case, please use our FedML distributed version (./fedml_experiments/distributed_fedavg)
-    model, trainer = create_model(args, args.model, feat_dim, num_cats, output_dim=None)
-
+    args.node_embedding_dim = train_data_global.dataset.dataset.node_feature_dim
+    model, trainer = create_model(args, args.model, train_data_global)
+    
     # start "federated averaging (FedAvg)"
     fl_alg = get_fl_algorithm_initializer(args.fl_algorithm)
     fl_alg(process_id, worker_number, device, comm,

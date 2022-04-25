@@ -4,10 +4,11 @@ import os
 import pickle
 import random
 from math import log2
+from re import T
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-import torch.utils.data as data
+from torchdrug import data
 
 from FedML.fedml_core.non_iid_partition.noniid_partition import (
     partition_class_samples_with_dirichlet_distribution,
@@ -27,7 +28,7 @@ class ClinToxDataLoader:
 
     def partition_data_by_sample_size(
         self,
-        args, path, 
+        args,
         client_number, 
         uniform=True, 
         compact=True
@@ -45,15 +46,18 @@ class ClinToxDataLoader:
             #Split the dataset uniformly for each client
             train_set_clients_size = [int(len(train_set)/client_number)] * (client_number-1)
             train_set_clients_size = [*train_set_clients_size, len(train_set) - sum(train_set_clients_size)]
-            train_set_clients = torch.utils.data.random_split(train_set, train_set_clients_size)
         
             val_set_clients_size = [int(len(valid_set)/client_number)] * (client_number-1)
             val_set_clients_size = [*val_set_clients_size, len(valid_set) - sum(val_set_clients_size)]
-            val_set_clients = torch.utils.data.random_split(valid_set, val_set_clients_size)
 
             test_set_clients_size = [int(len(test_set)/client_number)] * (client_number-1)
             test_set_clients_size = [*test_set_clients_size, len(test_set) - sum(test_set_clients_size)]
-            test_set_clients = torch.utils.data.random_split(test_set, test_set_clients_size)
+         
+            all_set_clients_size = train_set_clients_size + val_set_clients_size + test_set_clients_size
+            all_set_clients = torch.utils.data.random_split(self.dataset, all_set_clients_size)
+            train_set_clients = all_set_clients[:client_number]
+            val_set_clients = all_set_clients[client_number:2*client_number]
+            test_set_clients = all_set_clients[2*client_number:]
         else:
             raise Exception("Not implemented!")
 
@@ -77,7 +81,7 @@ class ClinToxDataLoader:
         args,
         client_number,
         uniform=True,
-        global_test=True,
+        global_test=False,
         compact=True,
     ):
         global_data_dict, partition_dicts = self.partition_data_by_sample_size(
@@ -85,26 +89,26 @@ class ClinToxDataLoader:
         )
         
         train_data_num = len(global_data_dict["train"])
-        val_data_num = len(global_data_dict["val"])
+        val_data_num = len(global_data_dict["valid"])
         test_data_num = len(global_data_dict["test"])
 
 
         train_data_global = data.DataLoader(
             global_data_dict["train"],
-            batch_size=1,
+            batch_size=8,
             shuffle=True,
             pin_memory=True,
         )
         val_data_global = data.DataLoader(
-            global_data_dict["val"],
-            batch_size=1,
+            global_data_dict["valid"],
+            batch_size=8,
             shuffle=True,
             pin_memory=True,
         )
         test_data_global = data.DataLoader(
             global_data_dict["test"],
-            batch_size=1,
-            shuffle=True,
+            batch_size=8,
+            shuffle=False,
             pin_memory=True,
         )
 
@@ -113,22 +117,21 @@ class ClinToxDataLoader:
         train_data_local_dict = dict()
         val_data_local_dict = dict()
         test_data_local_dict = dict()
-
         for client in range(client_number):
             train_dataset_client = partition_dicts[client]["train"]
-            val_dataset_client = partition_dicts[client]["val"]
+            val_dataset_client = partition_dicts[client]["valid"]
             test_dataset_client = partition_dicts[client]["test"]
 
             data_local_num_dict[client] = len(train_dataset_client)
             train_data_local_dict[client] = data.DataLoader(
                 train_dataset_client,
-                batch_size=1,
+                batch_size=8,
                 shuffle=True,
                 pin_memory=True,
             )
             val_data_local_dict[client] = data.DataLoader(
                 val_dataset_client,
-                batch_size=1,
+                batch_size=8,
                 shuffle=False,
                 pin_memory=True,
             )
@@ -137,7 +140,7 @@ class ClinToxDataLoader:
                 if global_test
                 else data.DataLoader(
                     test_dataset_client,
-                    batch_size=1,
+                    batch_size=8,
                     shuffle=False,
                     pin_memory=True,
                 )

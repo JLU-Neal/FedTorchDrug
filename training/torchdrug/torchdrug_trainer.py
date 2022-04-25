@@ -1,6 +1,7 @@
+from cgi import test
 import logging
 from unittest import result
-
+from itertools import islice
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -12,9 +13,16 @@ from torch_geometric.utils import negative_sampling
 from sklearn.metrics import average_precision_score, roc_auc_score, precision_recall_curve, auc
 
 from FedML.fedml_core.trainer.model_trainer import ModelTrainer
-from torchdrug import data
+from torchdrug import data, utils, tasks
+from torchdrug.utils import comm
 
 class TorchDrugTrainer(ModelTrainer):
+    def __init__(self, model, args=None):
+        super().__init__(model, args)
+        if args.scheduler == 'None':
+            self.scheduler = None
+
+
     def get_model_params(self):
         return self.model.cpu().state_dict()
     
@@ -22,126 +30,116 @@ class TorchDrugTrainer(ModelTrainer):
         logging.info("set_model_params")
         self.model.load_state_dict(model_parameters)
         
-    def train(self, train_data, device, args):
+        
+    def train(self, train_data_loader, device, args, test_data_loader=None):
         model = self.model
-
-        model.to(device)
+        # task = tasks.PropertyPrediction(model, task=train_data_loader.dataset.dataset.tasks, criterion="bce", metric=("auprc", "auroc"))
+        # if hasattr(task, "preprocess"):
+        #     result = task.preprocess(train_data_loader.dataset.dataset, None, None)
+        # if model.device.type == "cuda":
+        #     task = task.cuda(model.device)
+        # model = task
         model.train()
+        batch_per_epoch = len(train_data_loader)
+    
 
-        test_data = None
-        try:
-            test_data = self.test_data
-        except:
-            pass
-
-        criterion = torch.nn.BCEWithLogitsLoss(reduction="none")
         if args.client_optimizer == "sgd":
-            optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+            self.optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
         else:
-            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+            self.optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
         max_test_score = 0
         best_model_params = {}
         for epoch in range(args.epochs):
-            for mol_idxs, (adj_matrix, feature_matrix, label, mask) in enumerate(
-                train_data
+            metrics = []
+            start_id = 0
+            # the last gradient update may contain less than gradient_interval batches
+            gradient_interval = min(batch_per_epoch - start_id, args.gradient_interval)
+
+            for batch_id, batch in enumerate(
+                islice(train_data_loader, batch_per_epoch)
             ):
-                # Pass on molecules that have no labels
-                if torch.all(mask == 0).item():
-                    continue
-
-                optimizer.zero_grad()
-
-                adj_matrix = adj_matrix.to(
-                    device=device, dtype=torch.float32, non_blocking=True
-                )
-                feature_matrix = feature_matrix.to(
-                    device=device, dtype=torch.float32, non_blocking=True
-                )
-                label = label.to(device=device, dtype=torch.float32, non_blocking=True)
-                mask = mask.to(device=device, dtype=torch.float32, non_blocking=True)
-
-                # Need to check the return type
-                graph = data.Graph.from_dense(adj_matrix)
-                graph.graph_feature = feature_matrix
-                result = model(graph, feature_matrix)
-                logits = result['graph_feature']
-                loss = criterion(logits, label) * mask
-                loss = loss.sum() / mask.sum()
-
+                if model.device.type == "cuda":
+                    batch = utils.cuda(batch, device=model.device)
+                
+                loss, metric = model(batch)
+                if not loss.requires_grad:
+                    raise RuntimeError("Loss doesn't require grad. Did you define any loss in the task?")
+                loss = loss / gradient_interval
                 loss.backward()
-                optimizer.step()
+                metrics.append(metric)
+                print("Epoch = {}, Iter = {}/{}: Train Metric = {}".format(
+                        epoch, batch_id + 1, len(train_data_loader), metric
+                            )
+                )
+                if batch_id - start_id + 1 == gradient_interval:
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
 
-                if ((mol_idxs + 1) % args.frequency_of_the_test == 0) or (
-                    mol_idxs == len(train_data) - 1
+                    metric = utils.stack(metrics, dim=0)
+                    metric = utils.mean(metric, dim=0)
+                    
+                    start_id = batch_id + 1
+                    gradient_interval = min(batch_per_epoch - start_id, args.gradient_interval)
+
+
+                
+
+                if ((batch_id + 1) % args.frequency_of_the_test == 0) or (
+                    batch_id == len(train_data_loader) - 1
                 ):
-                    if test_data is not None:
-                        test_score, _ = self.test(self.test_data, device, args)
+                    if test_data_loader is not None:
+                        test_metric, _ = self.test(test_data_loader, device, args)
                         print(
-                            "Epoch = {}, Iter = {}/{}: Test Score = {}".format(
-                                epoch, mol_idxs + 1, len(train_data), test_score
+                            "Epoch = {}, Iter = {}/{}: Test Metric = {}".format(
+                                epoch, batch_id + 1, len(test_data_loader), test_metric
                             )
                         )
-                        if test_score > max_test_score:
-                            max_test_score = test_score
+                        if test_metric['auroc [CT_TOX]'] > max_test_score:
+                            max_test_score = test_metric['auroc [CT_TOX]']
                             best_model_params = {
                                 k: v.cpu() for k, v in model.state_dict().items()
                             }
                         print("Current best = {}".format(max_test_score))
+            if self.scheduler:
+                self.scheduler.step()
 
         return max_test_score, best_model_params
 
-    def test(self, test_data, device, args):
+    def test(self, test_data_loader, device, args):
         logging.info("----------test--------")
+        logging.info("len(test_data_loader) = {}".format(len(test_data_loader)))
         model = self.model
+        # model_cmp = model
+        # task = tasks.PropertyPrediction(model, task=test_data_loader.dataset.dataset.tasks, criterion="bce", metric=("auprc", "auroc"))
+        # if hasattr(task, "preprocess"):
+        #     result = task.preprocess(test_data_loader.dataset.dataset, None, None)
+        # if model.device.type == "cuda":
+        #     task = task.cuda(model.device)
+        # model = task
         model.eval()
         model.to(device)
 
         with torch.no_grad():
-            y_pred = []
-            y_true = []
-            masks = []
-            for mol_idx, (adj_matrix, feature_matrix, label, mask) in enumerate(
-                test_data
-            ):
-                adj_matrix = adj_matrix.to(
-                    device=device, dtype=torch.float32, non_blocking=True
-                )
-                feature_matrix = feature_matrix.to(
-                    device=device, dtype=torch.float32, non_blocking=True
-                )
+            
+            preds = []
+            targets = []
+            for batch_id, batch in enumerate(test_data_loader):
+                if batch_id == len(test_data_loader) - 1:
+                    print(batch)
+                if device.type == "cuda":
+                    batch = utils.cuda(batch, device=model.device)
 
-                #Need to check the return type
-                result = model(adj_matrix, feature_matrix)
-                logits = result['graph_feature']
-                y_pred.append(logits.cpu().numpy())
-                y_true.append(label.cpu().numpy())
-                masks.append(mask.numpy())
+                pred, target = model.predict_and_target(batch)
+                preds.append(pred)
+                targets.append(target)
 
-        y_pred = np.array(y_pred)
-        y_true = np.array(y_true)
-        masks = np.array(masks)
+            pred = utils.cat(preds)
+            target = utils.cat(targets)
+            metric = model.evaluate(pred, target)
+        return metric, model
 
-        results = []
-        for label in range(masks.shape[1]):
-            valid_idxs = np.nonzero(masks[:, label])
-            truth = y_true[valid_idxs, label].flatten()
-            pred = y_pred[valid_idxs, label].flatten()
-
-            if np.all(truth == 0.0) or np.all(truth == 1.0):
-                results.append(float("nan"))
-            else:
-                if args.metric == "prc-auc":
-                    precision, recall, _ = precision_recall_curve(truth, pred)
-                    score = auc(recall, precision)
-                else:
-                    score = roc_auc_score(truth, pred)
-
-                results.append(score)
-
-        score = np.nanmean(results)
-
-        return score, model
+        
 
 
     def test_on_the_server(
@@ -152,16 +150,16 @@ class TorchDrugTrainer(ModelTrainer):
         model_list, score_list = [], []
         for client_idx in test_data_local_dict.keys():
             test_data = test_data_local_dict[client_idx]
-            score, model = self.test(test_data, device, args)
+            metric, model = self.test(test_data, device, args)
             for idx in range(len(model_list)):
                 self._compare_models(model, model_list[idx])
             model_list.append(model)
-            score_list.append(score)
-            logging.info("Client {}, Test ROC-AUC score = {}".format(client_idx, score))
-            wandb.log({"Client {} Test/ROC-AUC".format(client_idx): score})
+            score_list.append(metric['auroc [CT_TOX]'].detach().cpu().numpy())
+            logging.info("Client {}, Test ROC-AUC score = {}".format(client_idx, metric['auroc [CT_TOX]']))
+            wandb.log({"Client {} CT_TOX/ROC-AUC".format(client_idx): metric['auroc [CT_TOX]']})
         avg_score = np.mean(np.array(score_list))
-        logging.info("Test ROC-AUC Score = {}".format(avg_score))
-        wandb.log({"Test/ROC-AUC": avg_score})
+        logging.info("CT_TOX/ROC-AUC Score = {}".format(avg_score))
+        wandb.log({"CT_TOX/ROC-AUC": avg_score})
         return True
 
 
