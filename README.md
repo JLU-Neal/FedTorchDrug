@@ -1,6 +1,5 @@
 # FedTorchDrug: A Federated Learning System and Benchmark based on TorchDrug:
-A Research-oriented Federated Learning Library and Benchmark Platform for Graph Neural Networks. 
-Accepted to ICLR-DPML and MLSys21 - GNNSys'21 workshops. 
+
 
 
 ## Installation
