@@ -147,6 +147,12 @@ def create_model(args, model_name, train_data_loader):
             task = task.cuda(model.device)
         model = task
         trainer = TorchDrugTrainer(model, args)
+    elif model_name == "GCN":
+        raise Exception("GCN is not supported yet")
+    elif model_name == "NFP":
+        raise Exception("NFP is not supported yet")
+    elif model_name == "MPNN":
+        raise Exception("MPNN is not supported yet")
     else:
         raise Exception("such model does not exist !")
     logging.info("done")
