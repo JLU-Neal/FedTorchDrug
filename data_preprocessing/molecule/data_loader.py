@@ -17,13 +17,13 @@ from .utils import *
 
 
 def get_data(path):
-    with open(path + "adjacency_matrices.pkl", "rb") as f:
+    with open(path + "/adjacency_matrices.pkl", "rb") as f:
         adj_matrices = pickle.load(f)
 
-    with open(path + "feature_matrices.pkl", "rb") as f:
+    with open(path + "/feature_matrices.pkl", "rb") as f:
         feature_matrices = pickle.load(f)
 
-    labels = np.load(path + "labels.npy")
+    labels = np.load(path + "/labels.npy")
 
     return adj_matrices, feature_matrices, labels
 
