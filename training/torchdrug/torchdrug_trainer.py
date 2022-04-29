@@ -137,6 +137,7 @@ class TorchDrugTrainer(ModelTrainer):
             pred = utils.cat(preds)
             target = utils.cat(targets)
             metric = model.evaluate(pred, target)
+        model.train()
         return metric, model
 
         

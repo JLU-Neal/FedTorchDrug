@@ -148,11 +148,46 @@ def create_model(args, model_name, train_data_loader):
         model = task
         trainer = TorchDrugTrainer(model, args)
     elif model_name == "GCN":
-        raise Exception("GCN is not supported yet")
+        model = models.GCN(input_dim=args.node_embedding_dim, hidden_dims=[256, 256, 256, 256],
+                            short_cut=True, batch_norm=True, concat_hidden=True).cuda()
+        task = tasks.PropertyPrediction(model, task=train_data_loader.dataset.dataset.tasks, criterion="bce", metric=("auprc", "auroc"))
+        if hasattr(task, "preprocess"):
+            result = task.preprocess(train_data_loader.dataset.dataset, None, None)
+        if model.device.type == "cuda":
+            task = task.cuda(model.device)
+        model = task
+        trainer = TorchDrugTrainer(model, args)
     elif model_name == "NFP":
-        raise Exception("NFP is not supported yet")
+        model = models.NFP(input_dim=args.node_embedding_dim, hidden_dims=[256, 256, 256, 256], output_dim=256,
+                            short_cut=True, batch_norm=True, concat_hidden=True).cuda()
+        task = tasks.PropertyPrediction(model, task=train_data_loader.dataset.dataset.tasks, criterion="bce", metric=("auprc", "auroc"))
+        if hasattr(task, "preprocess"):
+            result = task.preprocess(train_data_loader.dataset.dataset, None, None)
+        if model.device.type == "cuda":
+            task = task.cuda(model.device)
+        model = task
+        trainer = TorchDrugTrainer(model, args)        
     elif model_name == "MPNN":
-        raise Exception("MPNN is not supported yet")
+        model = models.MPNN(input_dim=args.node_embedding_dim, hidden_dim=256, edge_input_dim=train_data_loader.dataset.dataset.edge_feature_dim,
+                            short_cut=True, batch_norm=True, concat_hidden=True).cuda()
+        task = tasks.PropertyPrediction(model, task=train_data_loader.dataset.dataset.tasks, criterion="bce", metric=("auprc", "auroc"))
+        if hasattr(task, "preprocess"):
+            result = task.preprocess(train_data_loader.dataset.dataset, None, None)
+        if model.device.type == "cuda":
+            task = task.cuda(model.device)
+        model = task
+        trainer = TorchDrugTrainer(model, args)
+
+    elif model_name == "GAT":
+        model = models.GAT(input_dim=args.node_embedding_dim, hidden_dims=[256, 256, 256, 256],
+                            short_cut=True, batch_norm=True, concat_hidden=True).cuda()
+        task = tasks.PropertyPrediction(model, task=train_data_loader.dataset.dataset.tasks, criterion="bce", metric=("auprc", "auroc"))
+        if hasattr(task, "preprocess"):
+            result = task.preprocess(train_data_loader.dataset.dataset, None, None)
+        if model.device.type == "cuda":
+            task = task.cuda(model.device)
+        model = task
+        trainer = TorchDrugTrainer(model, args)
     else:
         raise Exception("such model does not exist !")
     logging.info("done")
