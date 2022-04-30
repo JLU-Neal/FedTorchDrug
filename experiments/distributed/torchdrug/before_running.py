@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../../../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "")))
 # from data_preprocessing.molecule.data_loader import *
 import logging
-from data_preprocessing.torchdrug.data_loader import ClinToxDataLoader
+from data_preprocessing.torchdrug.data_loader import ClinToxDataLoader, SIDERDataLoader
 from training.torchdrug.torchdrug_trainer import TorchDrugTrainer
 from FedML.fedml_api.distributed.fedavg.FedAvgAPI import FedML_init
 
@@ -89,6 +89,8 @@ def load_data(args, dataset_name):
     logging.info("load_data. dataset_name = %s" % dataset_name)
     if dataset_name == 'ClinTox':
         data_loader = ClinToxDataLoader(args.data_dir)
+    elif dataset_name == 'SIDER':
+        data_loader = SIDERDataLoader(args.data_dir)
     else:
         Exception("no such dataset!")   
         

@@ -13,14 +13,15 @@ from torchdrug import data
 from FedML.fedml_core.non_iid_partition.noniid_partition import (
     partition_class_samples_with_dirichlet_distribution,
 )
-from torchdrug.datasets import ClinTox
+from torchdrug.datasets import ClinTox, SIDER
 import torch
 
 
-class ClinToxDataLoader:
+class DrugDataLoader:
     def __init__(self, path):
         self.path = path
-        self.dataset = ClinTox(self.path)
+        self.dataset = None
+        # self.dataset = ClinTox(self.path)
 
     def get_data(self):
         return self.dataset
@@ -164,3 +165,15 @@ class ClinToxDataLoader:
             val_data_local_dict,
             test_data_local_dict,
         )
+
+
+class ClinToxDataLoader(DrugDataLoader):
+    def __init__(self, path):
+        super().__init__(path)
+        self.dataset = ClinTox(self.path)
+
+
+class SIDERDataLoader(DrugDataLoader):
+    def __init__(self, path):
+        super().__init__(path)
+        self.dataset = SIDER(self.path)
