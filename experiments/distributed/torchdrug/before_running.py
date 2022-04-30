@@ -147,7 +147,7 @@ def create_model(args, model_name, train_data_loader):
             result = task.preprocess(train_data_loader.dataset.dataset, None, None)
         if model.device.type == "cuda":
             task = task.cuda(model.device)
-        model = task
+        model = task.cuda()
         trainer = TorchDrugTrainer(model, args)
     elif model_name == "GCN":
         model = models.GCN(input_dim=args.node_embedding_dim, hidden_dims=[256, 256, 256, 256],
@@ -157,7 +157,7 @@ def create_model(args, model_name, train_data_loader):
             result = task.preprocess(train_data_loader.dataset.dataset, None, None)
         if model.device.type == "cuda":
             task = task.cuda(model.device)
-        model = task
+        model = task.cuda()
         trainer = TorchDrugTrainer(model, args)
     elif model_name == "NFP":
         model = models.NFP(input_dim=args.node_embedding_dim, hidden_dims=[256, 256, 256, 256], output_dim=256,
@@ -167,7 +167,7 @@ def create_model(args, model_name, train_data_loader):
             result = task.preprocess(train_data_loader.dataset.dataset, None, None)
         if model.device.type == "cuda":
             task = task.cuda(model.device)
-        model = task
+        model = task.cuda()
         trainer = TorchDrugTrainer(model, args)        
     elif model_name == "MPNN":
         model = models.MPNN(input_dim=args.node_embedding_dim, hidden_dim=256, edge_input_dim=train_data_loader.dataset.dataset.edge_feature_dim,
@@ -177,7 +177,7 @@ def create_model(args, model_name, train_data_loader):
             result = task.preprocess(train_data_loader.dataset.dataset, None, None)
         if model.device.type == "cuda":
             task = task.cuda(model.device)
-        model = task
+        model = task.cuda()
         trainer = TorchDrugTrainer(model, args)
 
     elif model_name == "GAT":
@@ -188,7 +188,7 @@ def create_model(args, model_name, train_data_loader):
             result = task.preprocess(train_data_loader.dataset.dataset, None, None)
         if model.device.type == "cuda":
             task = task.cuda(model.device)
-        model = task
+        model = task.cuda()
         trainer = TorchDrugTrainer(model, args)
     else:
         raise Exception("such model does not exist !")

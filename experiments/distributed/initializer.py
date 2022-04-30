@@ -76,7 +76,7 @@ def add_federated_args(parser):
     parser.add_argument('--backend', type=str, default="MPI",
                         help='Backend for Server and Client')
 
-    parser.add_argument('--comm_round', type=int, default=10,
+    parser.add_argument('--comm_round', type=int, default=150,
                         help='how many round of communications we shoud use')
 
     parser.add_argument('--is_mobile', type=int, default=0,
@@ -88,7 +88,7 @@ def add_federated_args(parser):
     parser.add_argument('--client_num_per_round', type=int,
                         default=2, metavar='NN', help='number of workers')
 
-    parser.add_argument('--epochs', type=int, default=3, metavar='EP',
+    parser.add_argument('--epochs', type=int, default=1, metavar='EP',
                         help='how many epochs will be trained locally')
 
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1, metavar='EP',

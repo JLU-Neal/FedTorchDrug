@@ -15,6 +15,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score, precision_re
 from FedML.fedml_core.trainer.model_trainer import ModelTrainer
 from torchdrug import data, utils, tasks
 from torchdrug.utils import comm
+from tqdm import tqdm
 
 class TorchDrugTrainer(ModelTrainer):
     def __init__(self, model, args=None):
@@ -22,6 +23,10 @@ class TorchDrugTrainer(ModelTrainer):
         if args.scheduler == 'None':
             self.scheduler = None
 
+
+        
+        self.max_auroc = 0
+        self.max_auprc = 0
 
     def get_model_params(self):
         return self.model.cpu().state_dict()
@@ -48,8 +53,6 @@ class TorchDrugTrainer(ModelTrainer):
         else:
             self.optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-        max_auroc = 0
-        max_auprc = 0
         best_model_params = {}
         for epoch in range(args.epochs):
             metrics = []
@@ -57,79 +60,86 @@ class TorchDrugTrainer(ModelTrainer):
             # the last gradient update may contain less than gradient_interval batches
             gradient_interval = min(batch_per_epoch - start_id, args.gradient_interval)
 
-            for batch_id, batch in enumerate(
-                islice(train_data_loader, batch_per_epoch)
-            ):
-                if model.device.type == "cuda":
-                    batch = utils.cuda(batch, device=model.device)
-                
-                loss, metric = model(batch)
-                if not loss.requires_grad:
-                    raise RuntimeError("Loss doesn't require grad. Did you define any loss in the task?")
-                loss = loss / gradient_interval
-                loss.backward()
-                metrics.append(metric)
-                print("Epoch = {}, Iter = {}/{}: Train Metric = {}".format(
-                        epoch, batch_id + 1, len(train_data_loader), metric
-                            )
-                )
-                if batch_id - start_id + 1 == gradient_interval:
-                    self.optimizer.step()
-                    self.optimizer.zero_grad()
-
-                    metric = utils.stack(metrics, dim=0)
-                    metric = utils.mean(metric, dim=0)
+            # #test
+            # list = [1,2,3,4,5,6,7,8,9,10]
+            # for ele in tqdm(list):
+            #     print(ele)
+            with tqdm(train_data_loader, unit='batch') as tepoch:
+                for batch_id, batch in tqdm(enumerate(
+                    islice(tepoch, batch_per_epoch)
+                )):
+                    if model.device.type == "cuda":
+                        batch = utils.cuda(batch, device=model.device)
                     
-                    start_id = batch_id + 1
-                    gradient_interval = min(batch_per_epoch - start_id, args.gradient_interval)
-
-
-                
-
-                if ((batch_id + 1) % args.frequency_of_the_test == 0) or (
-                    batch_id == len(train_data_loader) - 1
-                ):
-                    if test_data_loader is not None:
-                        test_metric, _ = self.test(test_data_loader, device, args)
-                        
-                        sum_auroc = 0
-                        count_auroc = 0
-                        sum_auprc = 0
-                        count_auprc = 0
-                        for key in test_metric:
-                            if key[:5] == "auroc":
-                                sum_auroc += test_metric[key]
-                                count_auroc += 1
-                            elif key[:5] == "auprc":
-                                sum_auprc += test_metric[key]
-                                count_auprc += 1
-                        macro_avg_auroc = sum_auroc / count_auroc
-                        macro_avg_auprc = sum_auprc / count_auprc
-
-
-                        print(
-                            "Epoch = {}, Iter = {}/{}: macro_avg_auroc = {} macro_avg_auprc = {}".format(
-                                epoch, batch_id + 1, len(train_data_loader), macro_avg_auroc, macro_avg_auprc
+                    loss, metric = model(batch)
+                    if not loss.requires_grad:
+                        raise RuntimeError("Loss doesn't require grad. Did you define any loss in the task?")
+                    loss = loss / gradient_interval
+                    loss.backward()
+                    metrics.append(metric)
+                    tepoch.set_description("Round = {}, Epoch = {}, Iter = {}/{} ".format(
+                            args.round_idx, epoch, batch_id + 1, len(train_data_loader)
                             )
-                        )
-                        if macro_avg_auroc > max_auroc:
-                            max_auroc = macro_avg_auroc
-                            best_model_params = {
-                                k: v.cpu() for k, v in model.state_dict().items()
-                            }
-                        print("Current best auroc = {}".format(max_auroc))
+                    )
+                    for key in metric:
+                        tepoch.set_postfix_str("{} = {:.2f}".format(key, metric[key].item()))
+                    if batch_id - start_id + 1 == gradient_interval:
+                        self.optimizer.step()
+                        self.optimizer.zero_grad()
 
-                        if macro_avg_auprc > max_auprc:
-                            max_auprc = macro_avg_auprc
-                            best_model_params = {
-                                k: v.cpu() for k, v in model.state_dict().items()
-                            }
-                        print("Current best auprc = {}".format(max_auprc))
+                        metric = utils.stack(metrics, dim=0)
+                        metric = utils.mean(metric, dim=0)
+                        
+                        start_id = batch_id + 1
+                        gradient_interval = min(batch_per_epoch - start_id, args.gradient_interval)
+
+
+                    
+
+                    if ((batch_id + 1) % args.frequency_of_the_test == 0) or (
+                        batch_id == len(train_data_loader) - 1
+                    ):
+                        if test_data_loader is not None:
+                            test_metric, _ = self.test(test_data_loader, device, args)
+                            
+                            sum_auroc = 0
+                            count_auroc = 0
+                            sum_auprc = 0
+                            count_auprc = 0
+                            for key in test_metric:
+                                if key[:5] == "auroc":
+                                    sum_auroc += test_metric[key]
+                                    count_auroc += 1
+                                elif key[:5] == "auprc":
+                                    sum_auprc += test_metric[key]
+                                    count_auprc += 1
+                            macro_avg_auroc = sum_auroc / count_auroc
+                            macro_avg_auprc = sum_auprc / count_auprc
+
+
+                            print(
+                                "Epoch = {}, Iter = {}/{}: macro_avg_auroc = {} macro_avg_auprc = {}".format(
+                                    epoch, batch_id + 1, len(train_data_loader), macro_avg_auroc, macro_avg_auprc
+                                )
+                            )
+                            if macro_avg_auroc > self.max_auroc:
+                                self.max_auroc = macro_avg_auroc
+                                best_model_params = {
+                                    k: v.cpu() for k, v in model.state_dict().items()
+                                }
+                            print("Current best auroc = {}".format(self.max_auroc))
+
+                            if macro_avg_auprc > self.max_auprc:
+                                self.max_auprc = macro_avg_auprc
+                                best_model_params = {
+                                    k: v.cpu() for k, v in model.state_dict().items()
+                                }
+                            print("Current best auprc = {}".format(self.max_auprc))
             if self.scheduler:
                 self.scheduler.step()
         return_metrics = {}
-        return_metrics["auroc"] = max_auroc
-        return_metrics["auprc"] = max_auprc
+        return_metrics["auroc"] = self.max_auroc
+        return_metrics["auprc"] = self.max_auprc
         return return_metrics, best_model_params
 
     def test(self, test_data_loader, device, args):
@@ -174,19 +184,48 @@ class TorchDrugTrainer(ModelTrainer):
     ) -> bool:
         logging.info("----------test_on_the_server--------")
 
-        model_list, score_list = [], []
+        model_list, macro_avg_auroc_list, macro_avg_auprc_list = [], [], []
         for client_idx in test_data_local_dict.keys():
             test_data = test_data_local_dict[client_idx]
-            metric, model = self.test(test_data, device, args)
+
+
+            test_metric, model = self.test(test_data, device, args)
+                        
+            sum_auroc = 0
+            count_auroc = 0
+            sum_auprc = 0
+            count_auprc = 0
+            for key in test_metric:
+                if key[:5] == "auroc":
+                    sum_auroc += test_metric[key]
+                    count_auroc += 1
+                elif key[:5] == "auprc":
+                    sum_auprc += test_metric[key]
+                    count_auprc += 1
+            macro_avg_auroc = sum_auroc / count_auroc
+            macro_avg_auprc = sum_auprc / count_auprc
+
+
+            # metric, model = self.test(test_data, device, args)
             for idx in range(len(model_list)):
                 self._compare_models(model, model_list[idx])
             model_list.append(model)
-            score_list.append(metric['auroc [CT_TOX]'].detach().cpu().numpy())
-            logging.info("Client {}, Test ROC-AUC score = {}".format(client_idx, metric['auroc [CT_TOX]']))
-            wandb.log({"Client {} CT_TOX/ROC-AUC".format(client_idx): metric['auroc [CT_TOX]']})
-        avg_score = np.mean(np.array(score_list))
-        logging.info("CT_TOX/ROC-AUC Score = {}".format(avg_score))
-        wandb.log({"CT_TOX/ROC-AUC": avg_score})
+            macro_avg_auroc_list.append(macro_avg_auroc.detach().cpu().numpy())
+            macro_avg_auprc_list.append(macro_avg_auprc.detach().cpu().numpy())
+            logging.info("Client {}, Test macro averaged auroc = {}".format(client_idx, macro_avg_auroc))
+            logging.info("Client {}, Test macro averaged auprc = {}".format(client_idx, macro_avg_auprc))    
+        avg_auroc_score = np.mean(np.array(macro_avg_auroc_list))
+        avg_auprc_score = np.mean(np.array(macro_avg_auprc_list))
+        
+        logging.info("OVERALL ROC-AUC Score = {}".format(avg_auroc_score))
+        logging.info("OVERALL PRC-AUC Score = {}".format(avg_auprc_score))
+        if avg_auroc_score > self.max_auroc:
+            self.max_auroc = avg_auroc_score
+        logging.info("Current best auroc = {}".format(self.max_auroc))
+        if avg_auprc_score > self.max_auprc:
+            self.max_auprc = avg_auprc_score
+        logging.info("Current best auprc = {}".format(self.max_auprc))
+        
         return True
 
 

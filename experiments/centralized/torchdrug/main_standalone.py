@@ -80,8 +80,11 @@ if __name__ == "__main__":
     
     args.node_embedding_dim = train_data_global.dataset.dataset.node_feature_dim
     model, trainer = create_model(args, args.model, train_data_global)
+    
 
-    return_metrics, best_model_params = trainer.train(train_data_global, device, args, test_data_global)
+    for idx in range(args.comm_round):
+        args.round_idx = idx
+        return_metrics, best_model_params = trainer.train(train_data_global, device, args)
+        trainer.test_on_the_server(train_data_local_dict, test_data_local_dict, device, args=None)
     for key in return_metrics:
-        print(key, return_metrics[key])
- 
+            print(key, return_metrics[key])

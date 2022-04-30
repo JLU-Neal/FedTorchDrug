@@ -19,7 +19,7 @@ from FedML.fedml_api.distributed.fedavg.FedAvgAPI import FedML_init
 from experiments.distributed.initializer import add_federated_args, get_fl_algorithm_initializer, set_seed
 from torchdrug import models, tasks
 from experiments.distributed.torchdrug.before_running import add_args, load_data, create_model, init_training_device, post_complete_message_to_sweep_process
-
+import traceback
 
 
 
@@ -106,10 +106,16 @@ if __name__ == "__main__":
     
     # start "federated averaging (FedAvg)"
     fl_alg = get_fl_algorithm_initializer(args.fl_algorithm)
-    fl_alg(process_id, worker_number, device, comm,
-                             model, train_data_num, train_data_global, test_data_global,
-                             data_local_num_dict, train_data_local_dict, test_data_local_dict, args,
-                             trainer)
+
+    try:
+        fl_alg(process_id, worker_number, device, comm,
+                                model, train_data_num, train_data_global, test_data_global,
+                                data_local_num_dict, train_data_local_dict, test_data_local_dict, args,
+                                trainer)
+    except Exception as e:
+        logging.error("Exception: %s" % e)
+        traceback.print_exc()
+        
 
     if process_id == 0:
         post_complete_message_to_sweep_process(args)

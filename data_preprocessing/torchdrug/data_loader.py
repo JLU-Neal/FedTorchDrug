@@ -82,7 +82,7 @@ class DrugDataLoader:
         args,
         client_number,
         uniform=True,
-        global_test=False,
+        global_test=True,
         compact=True,
     ):
         global_data_dict, partition_dicts = self.partition_data_by_sample_size(
