@@ -48,7 +48,8 @@ class TorchDrugTrainer(ModelTrainer):
         else:
             self.optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-        max_test_score = 0
+        max_auroc = 0
+        max_auprc = 0
         best_model_params = {}
         for epoch in range(args.epochs):
             metrics = []
@@ -90,21 +91,46 @@ class TorchDrugTrainer(ModelTrainer):
                 ):
                     if test_data_loader is not None:
                         test_metric, _ = self.test(test_data_loader, device, args)
+                        
+                        sum_auroc = 0
+                        count_auroc = 0
+                        sum_auprc = 0
+                        count_auprc = 0
+                        for key in test_metric:
+                            if key[:5] == "auroc":
+                                sum_auroc += test_metric[key]
+                                count_auroc += 1
+                            elif key[:5] == "auprc":
+                                sum_auprc += test_metric[key]
+                                count_auprc += 1
+                        macro_avg_auroc = sum_auroc / count_auroc
+                        macro_avg_auprc = sum_auprc / count_auprc
+
+
                         print(
-                            "Epoch = {}, Iter = {}/{}: Test Metric = {}".format(
-                                epoch, batch_id + 1, len(test_data_loader), test_metric
+                            "Epoch = {}, Iter = {}/{}: macro_avg_auroc = {} macro_avg_auprc = {}".format(
+                                epoch, batch_id + 1, len(train_data_loader), macro_avg_auroc, macro_avg_auprc
                             )
                         )
-                        if test_metric['auroc [CT_TOX]'] > max_test_score:
-                            max_test_score = test_metric['auroc [CT_TOX]']
+                        if macro_avg_auroc > max_auroc:
+                            max_auroc = macro_avg_auroc
                             best_model_params = {
                                 k: v.cpu() for k, v in model.state_dict().items()
                             }
-                        print("Current best = {}".format(max_test_score))
+                        print("Current best auroc = {}".format(max_auroc))
+
+                        if macro_avg_auprc > max_auprc:
+                            max_auprc = macro_avg_auprc
+                            best_model_params = {
+                                k: v.cpu() for k, v in model.state_dict().items()
+                            }
+                        print("Current best auprc = {}".format(max_auprc))
             if self.scheduler:
                 self.scheduler.step()
-
-        return max_test_score, best_model_params
+        return_metrics = {}
+        return_metrics["auroc"] = max_auroc
+        return_metrics["auprc"] = max_auprc
+        return return_metrics, best_model_params
 
     def test(self, test_data_loader, device, args):
         logging.info("----------test--------")
