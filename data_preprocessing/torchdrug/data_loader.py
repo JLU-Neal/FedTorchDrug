@@ -13,7 +13,7 @@ from torchdrug import data
 from FedML.fedml_core.non_iid_partition.noniid_partition import (
     partition_class_samples_with_dirichlet_distribution,
 )
-from torchdrug.datasets import ClinTox, SIDER
+from torchdrug.datasets import ClinTox, SIDER, BACE, BBBP, Tox21
 import torch
 
 
@@ -177,3 +177,18 @@ class SIDERDataLoader(DrugDataLoader):
     def __init__(self, path):
         super().__init__(path)
         self.dataset = SIDER(self.path)
+
+class BACEDataLoader(DrugDataLoader):
+    def __init__(self, path):
+        super().__init__(path)
+        self.dataset = BACE(self.path)
+
+class BBBPDataLoader(DrugDataLoader):
+    def __init__(self, path):
+        super().__init__(path)
+        self.dataset = BBBP(self.path)
+
+class Tox21DataLoader(DrugDataLoader):
+    def __init__(self, path):
+        super().__init__(path)
+        self.dataset = Tox21(self.path)
