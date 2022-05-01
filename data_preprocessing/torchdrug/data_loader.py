@@ -15,7 +15,7 @@ from FedML.fedml_core.non_iid_partition.noniid_partition import (
 )
 from torchdrug.datasets import ClinTox, SIDER, BACE, BBBP, Tox21
 import torch
-from torch.utils.data import ConcatDataset
+
 
 
 class DrugDataLoader:
@@ -53,6 +53,16 @@ class DrugDataLoader:
 
         return client_idcs
 
+    def concat_datasets(self, datasets):
+        concatenated_dataset = None
+        for dataset in datasets:
+            if(concatenated_dataset is None):
+                concatenated_dataset = copy.deepcopy(dataset)
+            else:
+                concatenated_dataset.indices = concatenated_dataset.indices + dataset.indices
+        return concatenated_dataset
+            
+
     def partition_data_by_sample_size(
         self,
         args,
@@ -84,30 +94,12 @@ class DrugDataLoader:
         else:
             raise Exception("Not implemented!")
 
-        from torchvision.datasets import MNIST
-        from torchvision.datasets import CIFAR100
-        reload(torch)
-        from torch.utils.data import ConcatDataset
-
-        import numpy as np
-
         
-        mnist_data = MNIST('./data', train=True, download=True)
-        print('mnist: ', len(mnist_data))
-        cifar10_data = MNIST('./data', train=True, download=True)
-        print('cifar: ', len(cifar10_data))
-
-        concat_data = ConcatDataset([mnist_data, cifar10_data])
-        print('concat_data: ', len(concat_data))
-
-        img, target = concat_data.__getitem__(133)
-        print(np.array(img).shape)
-        print(target)
 
 
-        train_set = ConcatDataset(train_set_clients)
-        valid_set = ConcatDataset(val_set_clients)
-        test_set = ConcatDataset(test_set_clients)
+        train_set = self.concat_datasets(train_set_clients)
+        valid_set = self.concat_datasets(val_set_clients)
+        test_set = self.concat_datasets(test_set_clients)
         global_data_dict = {
             "train": train_set,
             "valid": valid_set,
