@@ -29,16 +29,29 @@ class DrugDataLoader:
 
 
 
-    def dirichlet_split_noniid(train_labels, alpha, n_clients):
+    def dirichlet_split_noniid(self, dataset, alpha, n_clients):
+        import numpy as np
+
+
+        
+        # Convert the multilabel task to multi-classification task
+        labels = None
+        offset = 0
+        for target_field in dataset.target_fields:
+            if labels is None:
+                labels = np.array(dataset.targets[target_field])
+            else:
+                labels += np.left_shift(np.array(dataset.targets[target_field]), offset)
+            offset += 1        
         '''
         参数为alpha的Dirichlet分布将数据索引划分为n_clients个子集
         '''
-        n_classes = train_labels.max() + 1
+        n_classes = labels.max() + 1
         label_distribution = np.random.dirichlet([alpha] * n_clients, n_classes)
         # (K, N)的类别标签分布矩阵X，记录每个client占有每个类别的多少
 
-        class_idcs = [np.argwhere(train_labels == y).flatten()
-                      for y in range(n_classes)]
+        class_idcs = [np.argwhere(np.array(dataset.targets[target_field]) == 1).flatten()
+                      for target_field in dataset.target_fields]
         # 记录每个K个类别对应的样本下标
 
         client_idcs = [[] for _ in range(n_clients)]
@@ -51,7 +64,19 @@ class DrugDataLoader:
 
         client_idcs = [np.concatenate(idcs) for idcs in client_idcs]
 
-        return client_idcs
+        train_set_clients = []
+        valid_set_clients = []
+        test_set_clients = []
+        for i in range(n_clients):
+            np.random.shuffle(client_idcs[i])
+            train_set_len = int(0.8 * len(client_idcs[i]))
+            valid_set_len = int(0.1 * len(client_idcs[i]))
+            test_set_len = len(client_idcs[i]) - train_set_len - valid_set_len
+            train_set_clients.append(torch.utils.data.Subset(self.dataset, list(client_idcs[i][:train_set_len])))
+            valid_set_clients.append(torch.utils.data.Subset(self.dataset, list(client_idcs[i][train_set_len:train_set_len + valid_set_len])))
+            test_set_clients.append(torch.utils.data.Subset(self.dataset, list(client_idcs[i][train_set_len + valid_set_len:])))
+
+        return train_set_clients, valid_set_clients, test_set_clients
 
     def concat_datasets(self, datasets):
         concatenated_dataset = None
@@ -92,7 +117,7 @@ class DrugDataLoader:
             val_set_clients = all_set_clients[client_number:2*client_number]
             test_set_clients = all_set_clients[2*client_number:]
         else:
-            raise Exception("Not implemented!")
+            train_set_clients, val_set_clients, test_set_clients = self.dirichlet_split_noniid(self.dataset, args.alpha, client_number)
 
         
 
