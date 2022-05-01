@@ -79,7 +79,7 @@ def add_args(parser):
 
 
 def load_data(args, dataset_name):
-    if (args.dataset != 'SIDER') and (args.dataset != 'ClinTox') and (args.dataset != 'BBPB') and \
+    if (args.dataset != 'SIDER') and (args.dataset != 'ClinTox') and (args.dataset != 'BBBP') and \
             (args.dataset != 'BACE') and (args.dataset != 'PCBA') and (args.dataset != 'Tox21') and \
                 (args.dataset != 'MUV') and (args.dataset != 'HIV') :
         raise Exception("no such dataset!")
@@ -91,7 +91,7 @@ def load_data(args, dataset_name):
         data_loader = ClinToxDataLoader(args.data_dir)
     elif dataset_name == 'SIDER':
         data_loader = SIDERDataLoader(args.data_dir)
-    elif dataset_name == 'BBPB':
+    elif dataset_name == 'BBBP':
         data_loader = BBBPDataLoader(args.data_dir)
     elif dataset_name == 'BACE':
         data_loader = BACEDataLoader(args.data_dir)
