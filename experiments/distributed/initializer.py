@@ -97,7 +97,7 @@ def add_federated_args(parser):
     parser.add_argument('--client_optimizer', type=str, default='adam',
                         help='Optimizer used on the client. This field can be the name of any subclass of the torch Opimizer class.')
 
-    parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
+    parser.add_argument('--lr', type=float, default=0.0015, metavar='LR',
                         help='learning rate on the client (default: 0.001)')
 
     parser.add_argument('--weight_decay', type=float, default=0, metavar='N',

@@ -1,6 +1,6 @@
 # Default: GIN
 ```
-python main_standalone.py
+python main_standalone.py --model
 ```
 # GCN
 ```

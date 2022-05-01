@@ -1,7 +1,3 @@
 # Plans
-## run the basic experiments
-### add all the available datasets
-#### use macro-average
-### make sure the output of the test is correct
-### store all the test results in a file (maybe a csv file)
-## compare IID non-IID results
+## run experiments with FL settings
+## non-iid split
