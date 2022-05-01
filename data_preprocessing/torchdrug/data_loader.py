@@ -27,6 +27,31 @@ class DrugDataLoader:
         return self.dataset
 
 
+
+    def dirichlet_split_noniid(train_labels, alpha, n_clients):
+        '''
+        参数为alpha的Dirichlet分布将数据索引划分为n_clients个子集
+        '''
+        n_classes = train_labels.max() + 1
+        label_distribution = np.random.dirichlet([alpha] * n_clients, n_classes)
+        # (K, N)的类别标签分布矩阵X，记录每个client占有每个类别的多少
+
+        class_idcs = [np.argwhere(train_labels == y).flatten()
+                      for y in range(n_classes)]
+        # 记录每个K个类别对应的样本下标
+
+        client_idcs = [[] for _ in range(n_clients)]
+        # 记录N个client分别对应样本集合的索引
+        for c, fracs in zip(class_idcs, label_distribution):
+            # np.split按照比例将类别为k的样本划分为了N个子集
+            # for i, idcs 为遍历第i个client对应样本集合的索引
+            for i, idcs in enumerate(np.split(c, (np.cumsum(fracs)[:-1] * len(c)).astype(int))):
+                client_idcs[i] += [idcs]
+
+        client_idcs = [np.concatenate(idcs) for idcs in client_idcs]
+
+        return client_idcs
+
     def partition_data_by_sample_size(
         self,
         args,
@@ -34,25 +59,21 @@ class DrugDataLoader:
         uniform=True, 
         compact=True
     ):
-        train_set, valid_set, test_set = torch.utils.data.random_split(self.dataset, 
-                                        [int(0.8 * len(self.dataset)), 
-                                        int(0.1 * len(self.dataset)), 
-                                        len(self.dataset) - int(0.8 * len(self.dataset)) - int(0.1 * len(self.dataset))])
-        global_data_dict = {
-            "train": train_set,
-            "valid": valid_set,
-            "test": test_set
-        }
+        
+        train_set_len = int(0.8 * len(self.dataset))
+        valid_set_len = int(0.1 * len(self.dataset))
+        test_set_len = len(self.dataset) - int(0.8 * len(self.dataset)) - int(0.1 * len(self.dataset))
+
         if uniform:
             #Split the dataset uniformly for each client
-            train_set_clients_size = [int(len(train_set)/client_number)] * (client_number-1)
-            train_set_clients_size = [*train_set_clients_size, len(train_set) - sum(train_set_clients_size)]
+            train_set_clients_size = [int(train_set_len/client_number)] * (client_number-1)
+            train_set_clients_size = [*train_set_clients_size, train_set_len - sum(train_set_clients_size)]
         
-            val_set_clients_size = [int(len(valid_set)/client_number)] * (client_number-1)
-            val_set_clients_size = [*val_set_clients_size, len(valid_set) - sum(val_set_clients_size)]
+            val_set_clients_size = [int(valid_set_len/client_number)] * (client_number-1)
+            val_set_clients_size = [*val_set_clients_size, valid_set_len - sum(val_set_clients_size)]
 
-            test_set_clients_size = [int(len(test_set)/client_number)] * (client_number-1)
-            test_set_clients_size = [*test_set_clients_size, len(test_set) - sum(test_set_clients_size)]
+            test_set_clients_size = [int(test_set_len/client_number)] * (client_number-1)
+            test_set_clients_size = [*test_set_clients_size, test_set_len - sum(test_set_clients_size)]
          
             all_set_clients_size = train_set_clients_size + val_set_clients_size + test_set_clients_size
             all_set_clients = torch.utils.data.random_split(self.dataset, all_set_clients_size)
@@ -61,7 +82,14 @@ class DrugDataLoader:
             test_set_clients = all_set_clients[2*client_number:]
         else:
             raise Exception("Not implemented!")
-
+        train_set = torch.utils.data.ConcatDataset(train_set_clients)
+        valid_set = torch.utils.data.ConcatDataset(val_set_clients)
+        test_set = torch.utils.data.ConcatDataset(test_set_clients)
+        global_data_dict = {
+            "train": train_set,
+            "valid": valid_set,
+            "test": test_set
+        }
         partition_dicts = [None] * client_number
         for client in range(client_number):
             train_set_client = train_set_clients[client]
