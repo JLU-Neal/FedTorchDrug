@@ -1,28 +1,28 @@
 # SIDER
 
-rm -rf ./nohup_log/fed_SIDER_GCN.log
-sh run_fedavg.sh 6 1 1 1 GCN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_GCN.log
+# rm -rf ./nohup_log/fed_SIDER_GCN.log
+# sh run_fedavg.sh 6 1 1 1 GCN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_GCN.log
 
-rm -rf ./nohup_log/fed_SIDER_GAT.log
-sh run_fedavg.sh 6 1 1 1 GAT homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_GAT.log
+# rm -rf ./nohup_log/fed_SIDER_GAT.log
+# sh run_fedavg.sh 6 1 1 1 GAT homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_GAT.log
 
-rm -rf ./nohup_log/fed_SIDER_GIN.log
-sh run_fedavg.sh 6 1 1 1 GIN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_GIN.log
+# rm -rf ./nohup_log/fed_SIDER_GIN.log
+# sh run_fedavg.sh 6 1 1 1 GIN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_GIN.log
 
-rm -rf ./nohup_log/fed_SIDER_NFP.log
-sh run_fedavg.sh 6 1 1 1 NFP homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_NFP.log
+# rm -rf ./nohup_log/fed_SIDER_NFP.log
+# sh run_fedavg.sh 6 1 1 1 NFP homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_NFP.log
 
-rm -rf ./nohup_log/fed_SIDER_MPNN.log
+# rm -rf ./nohup_log/fed_SIDER_MPNN.log
 # sh run_fedavg.sh 6 1 1 1 MPNN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  SIDER FedAvg >> ./nohup_log/fed_SIDER_MPNN.log
 
 
 
 # BACE
-rm -rf ./nohup_log/fed_BACE_GCN.log
-sh run_fedavg.sh 6 1 1 1 GCN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE FedAvg >> ./nohup_log/fed_BACE_GCN.log
+# rm -rf ./nohup_log/fed_BACE_GCN.log
+# sh run_fedavg.sh 6 1 1 1 GCN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE FedAvg >> ./nohup_log/fed_BACE_GCN.log
 
-rm -rf ./nohup_log/fed_BACE_GAT.log
-sh run_fedavg.sh 6 1 1 1 GAT homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE FedAvg >> ./nohup_log/fed_BACE_GAT.log
+# rm -rf ./nohup_log/fed_BACE_GAT.log
+# sh run_fedavg.sh 6 1 1 1 GAT homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE FedAvg >> ./nohup_log/fed_BACE_GAT.log
 
 rm -rf ./nohup_log/fed_BACE_GIN.log
 sh run_fedavg.sh 6 1 1 1 GIN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE FedAvg >> ./nohup_log/fed_BACE_GIN.log
@@ -30,7 +30,7 @@ sh run_fedavg.sh 6 1 1 1 GIN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE F
 rm -rf ./nohup_log/fed_BACE_NFP.log
 sh run_fedavg.sh 6 1 1 1 NFP homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE FedAvg >> ./nohup_log/fed_BACE_NFP.log
 
-rm -rf ./nohup_log/fed_BACE_MPNN.log
+# rm -rf ./nohup_log/fed_BACE_MPNN.log
 # sh run_fedavg.sh 6 1 1 1 MPNN homo 0.5 150 1 1 0.0015 256 256 0.3 256 256  BACE FedAvg >> ./nohup_log/fed_BACE_MPNN.log
 
 
