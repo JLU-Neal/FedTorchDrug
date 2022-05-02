@@ -1,9 +1,9 @@
 # Clintox
-rm -rf ./nohup_log/Clintox_GIN.log
-python main_standalone.py --dataset=ClinTox --model=GIN >> ./nohup_log/Clintox_GIN.log 
+# rm -rf ./nohup_log/Clintox_GIN.log
+# python main_standalone.py --dataset=ClinTox --model=GIN >> ./nohup_log/Clintox_GIN.log 
 
-rm -rf ./nohup_log/Clintox_GCN.log
-python main_standalone.py --dataset=ClinTox --model=GCN >> ./nohup_log/Clintox_GCN.log 
+# rm -rf ./nohup_log/Clintox_GCN.log
+# python main_standalone.py --dataset=ClinTox --model=GCN >> ./nohup_log/Clintox_GCN.log 
 
 # rm -rf ./nohup_log/Clintox_GAT.log
 # python main_standalone.py --dataset=ClinTox --model=GAT >> ./nohup_log/Clintox_GAT.log 
@@ -27,8 +27,8 @@ python main_standalone.py --dataset=ClinTox --model=GCN >> ./nohup_log/Clintox_G
 # rm -rf ./nohup_log/SIDER_NFP.log
 # python main_standalone.py --dataset=SIDER --model=NFP >> ./nohup_log/SIDER_NFP.log 
 
-# rm -rf ./nohup_log/SIDER_MPNN.log
-# python main_standalone.py --dataset=SIDER --model=MPNN >> ./nohup_log/SIDER_MPNN.log
+rm -rf ./nohup_log/SIDER_MPNN.log
+python main_standalone.py --dataset=SIDER --model=MPNN --batch_size=2 >> ./nohup_log/SIDER_MPNN.log
 
 # BACE
 # rm -rf ./nohup_log/BACE_GIN.log
@@ -47,24 +47,24 @@ python main_standalone.py --dataset=ClinTox --model=GCN >> ./nohup_log/Clintox_G
 # python main_standalone.py --dataset=BACE --model=MPNN >> ./nohup_log/BACE_MPNN.log
 
 # BBBP
-rm -rf ./nohup_log/BBBP_GIN.log
-python main_standalone.py --dataset=BBBP --model=GIN >> ./nohup_log/BBBP_GIN.log
+# rm -rf ./nohup_log/BBBP_GIN.log
+# python main_standalone.py --dataset=BBBP --model=GIN >> ./nohup_log/BBBP_GIN.log
 
 
-rm -rf ./nohup_log/BBBP_GCN.log
-python main_standalone.py --dataset=BBBP --model=GCN >> ./nohup_log/BBBP_GCN.log
+# rm -rf ./nohup_log/BBBP_GCN.log
+# python main_standalone.py --dataset=BBBP --model=GCN >> ./nohup_log/BBBP_GCN.log
 
 
-rm -rf ./nohup_log/BBBP_GAT.log
-python main_standalone.py --dataset=BBBP --model=GAT >> ./nohup_log/BBBP_GAT.log
+# rm -rf ./nohup_log/BBBP_GAT.log
+# python main_standalone.py --dataset=BBBP --model=GAT >> ./nohup_log/BBBP_GAT.log
 
 
-rm -rf ./nohup_log/BBBP_NFP.log
-python main_standalone.py --dataset=BBBP --model=NFP >> ./nohup_log/BBBP_NFP.log
+# rm -rf ./nohup_log/BBBP_NFP.log
+# python main_standalone.py --dataset=BBBP --model=NFP >> ./nohup_log/BBBP_NFP.log
 
 
-rm -rf ./nohup_log/BBBP_MPNN.log
-python main_standalone.py --dataset=BBBP --model=MPNN >> ./nohup_log/BBBP_MPNN.log
+# rm -rf ./nohup_log/BBBP_MPNN.log
+# python main_standalone.py --dataset=BBBP --model=MPNN >> ./nohup_log/BBBP_MPNN.log
 
 
 # Tox21
