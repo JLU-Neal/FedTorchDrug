@@ -37,7 +37,7 @@ class DrugDataLoader:
         # Convert the multilabel task to multi-classification task
         labels = None
         offset = 0
-        for target_field in dataset.target_fields:
+        for target_field in dataset.targets:
             if labels is None:
                 labels = np.array(dataset.targets[target_field])
             else:
@@ -46,12 +46,13 @@ class DrugDataLoader:
         '''
         参数为alpha的Dirichlet分布将数据索引划分为n_clients个子集
         '''
-        n_classes = labels.max() + 1
+        uniq_lab = np.unique(labels)
+        n_classes = len(uniq_lab)
         label_distribution = np.random.dirichlet([alpha] * n_clients, n_classes)
         # (K, N)的类别标签分布矩阵X，记录每个client占有每个类别的多少
 
-        class_idcs = [np.argwhere(np.array(dataset.targets[target_field]) == 1).flatten()
-                      for target_field in dataset.target_fields]
+        class_idcs = [np.argwhere(labels == y).flatten()
+                      for y in list(uniq_lab)]
         # 记录每个K个类别对应的样本下标
 
         client_idcs = [[] for _ in range(n_clients)]
@@ -64,6 +65,14 @@ class DrugDataLoader:
 
         client_idcs = [np.concatenate(idcs) for idcs in client_idcs]
 
+        new_client_idcs = []
+        for l in client_idcs:
+            new_l = []
+            for i in range(len(l)):
+                new_l.append(l[i].item())
+            new_client_idcs.append(new_l)
+        client_idcs = new_client_idcs
+        
         train_set_clients = []
         valid_set_clients = []
         test_set_clients = []
@@ -164,19 +173,19 @@ class DrugDataLoader:
 
         train_data_global = data.DataLoader(
             global_data_dict["train"],
-            batch_size=8,
+            batch_size=args.batch_size,
             shuffle=True,
             pin_memory=True,
         )
         val_data_global = data.DataLoader(
             global_data_dict["valid"],
-            batch_size=8,
+            batch_size=args.batch_size,
             shuffle=True,
             pin_memory=True,
         )
         test_data_global = data.DataLoader(
             global_data_dict["test"],
-            batch_size=8,
+            batch_size=args.batch_size,
             shuffle=False,
             pin_memory=True,
         )
@@ -194,13 +203,13 @@ class DrugDataLoader:
             data_local_num_dict[client] = len(train_dataset_client)
             train_data_local_dict[client] = data.DataLoader(
                 train_dataset_client,
-                batch_size=8,
+                batch_size=args.batch_size,
                 shuffle=True,
                 pin_memory=True,
             )
             val_data_local_dict[client] = data.DataLoader(
                 val_dataset_client,
-                batch_size=8,
+                batch_size=args.batch_size,
                 shuffle=False,
                 pin_memory=True,
             )
@@ -209,7 +218,7 @@ class DrugDataLoader:
                 if global_test
                 else data.DataLoader(
                     test_dataset_client,
-                    batch_size=8,
+                    batch_size=args.batch_size,
                     shuffle=False,
                     pin_memory=True,
                 )
