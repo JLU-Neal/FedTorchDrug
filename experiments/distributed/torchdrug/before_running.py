@@ -42,7 +42,7 @@ def add_args(parser):
     parser.add_argument('--sparse_adjacency', type=bool, default=False, help='Whether or not the adj matrix is to be processed as a sparse matrix')
 
 
-    parser.add_argument('--batch_size', type=int, default=1, metavar='N',
+    parser.add_argument('--batch_size', type=int, default=8, metavar='N',
                         help='input batch size for training (default: 64)')
 
     # model related
@@ -51,7 +51,7 @@ def add_args(parser):
     parser.add_argument('--node_embedding_dim', type=int, default=256,
                         help='Dimensionality of the vector space the atoms will be embedded in')
 
-    parser.add_argument('--alpha', type=float, default=0.5, help='Alpha value for LeakyRelu used in GAT')
+    parser.add_argument('--alpha', type=float, default=0.3, help='Alpha value for LeakyRelu used in GAT')
 
     parser.add_argument('--num_heads', type=int, default=2, help='Number of attention heads used in GAT')
 
